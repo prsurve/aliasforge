@@ -9,6 +9,7 @@ import { selectSuggestions } from "./apply/select.js";
 import { UsageError } from "./errors.js";
 import { createEnvironment } from "./analyze/environment.js";
 import { renderJson, renderReport } from "./analyze/report.js";
+import { computeStats, renderStats } from "./analyze/stats.js";
 import { suggest } from "./analyze/suggest.js";
 import { loadHistory, type LoadedHistory, type Shell } from "./history/index.js";
 import { scanHistory } from "./risks/engine.js";
@@ -25,7 +26,7 @@ Commands:
   suggest   Suggest aliases from shell history
   risks     Flag dangerous commands and leaked secrets
   apply     Write chosen aliases to a managed block in your rc file
-  stats     Show history size, top commands and time span (not implemented yet)
+  stats     Show history size, top commands and time span
 
 suggest options:
   --shell bash|zsh|fish   Shell dialect (default: from --file or $SHELL)
@@ -37,6 +38,9 @@ suggest options:
 
 risks options:
   --shell, --file, --json as above
+
+stats options:
+  --shell, --file, --json as above, plus --top N (default 10)
 
 apply options:
   --shell bash|zsh|fish   Required. Which rc file to update
@@ -190,6 +194,19 @@ function runApply(args: string[], io: Io): number {
   return 0;
 }
 
+function runStats(args: string[], io: Io): number {
+  const { values } = parseArgs({
+    args,
+    options: { shell: { type: "string" }, file: { type: "string" }, top: { type: "string" }, json: { type: "boolean" } },
+    strict: true,
+  });
+  const top = positiveInt("--top", values.top, 10);
+  const history = loadFromOptions(values.shell, values.file, io);
+  const stats = computeStats(history.entries, top);
+  io.out(values.json ? JSON.stringify({ shell: history.shell, ...stats }, null, 2) : renderStats(history.shell, stats));
+  return 0;
+}
+
 function isUsageError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code ?? "";
   return error instanceof UsageError || code.startsWith("ERR_PARSE_ARGS");
@@ -199,10 +216,7 @@ function dispatch(command: string, rest: string[], io: Io): number {
   if (command === "suggest") return runSuggest(rest, io);
   if (command === "risks") return runRisks(rest, io);
   if (command === "apply") return runApply(rest, io);
-  if (["stats"].includes(command)) {
-    io.err(`aliasforge ${command} is not implemented yet`);
-    return 1;
-  }
+  if (command === "stats") return runStats(rest, io);
   io.err(`Unknown command: ${command}\n\n${HELP}`);
   return 2;
 }
