@@ -1,0 +1,8 @@
+: 1700000000:0;git status
+: 1700000100:5;echo one \
+  two\
+  three
+: 1700000200:0;ls -la
+plain line without timestamp
+: garbage no semicolon
+
