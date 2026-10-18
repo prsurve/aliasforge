@@ -7,7 +7,9 @@ import { fileURLToPath } from "node:url";
 import { createEnvironment } from "./analyze/environment.js";
 import { renderJson, renderReport } from "./analyze/report.js";
 import { suggest } from "./analyze/suggest.js";
-import { loadHistory, type Shell } from "./history/index.js";
+import { loadHistory, type LoadedHistory, type Shell } from "./history/index.js";
+import { scanHistory } from "./risks/engine.js";
+import { renderRisks, renderRisksJson } from "./risks/report.js";
 
 const VERSION = "0.0.0";
 const SHELLS: Shell[] = ["bash", "zsh", "fish"];
@@ -18,7 +20,7 @@ Usage: aliasforge <command> [options]
 
 Commands:
   suggest   Suggest aliases from shell history
-  risks     Flag dangerous commands and leaked secrets (not implemented yet)
+  risks     Flag dangerous commands and leaked secrets
   apply     Write chosen aliases to a managed block in your rc file (not implemented yet)
   stats     Show history size, top commands and time span (not implemented yet)
 
@@ -29,6 +31,9 @@ suggest options:
   --min-length N          Minimum command length in characters (default 8)
   --top N                 Number of suggestions (default 10)
   --json                  Machine-readable output
+
+risks options:
+  --shell, --file, --json as above
 `;
 
 export interface Io {
@@ -67,6 +72,12 @@ function shellFromEnv(env: NodeJS.ProcessEnv): Shell {
   return SHELLS.find((shell) => shell === name) ?? "bash";
 }
 
+function loadFromOptions(requested: string | undefined, file: string | undefined, io: Io): LoadedHistory {
+  const shell = parseShell(requested);
+  const shellHint = shell ?? (file === undefined ? shellFromEnv(io.env) : undefined);
+  return loadHistory({ file, shell: shellHint, home: io.home });
+}
+
 function runSuggest(args: string[], io: Io): number {
   const { values } = parseArgs({
     args,
@@ -80,14 +91,12 @@ function runSuggest(args: string[], io: Io): number {
     },
     strict: true,
   });
-  const requested = parseShell(values.shell);
   const options = {
     minCount: positiveInt("--min-count", values["min-count"], 5),
     minLength: positiveInt("--min-length", values["min-length"], 8),
     top: positiveInt("--top", values.top, 10),
   };
-  const shellHint = requested ?? (values.file === undefined ? shellFromEnv(io.env) : undefined);
-  const history = loadHistory({ file: values.file, shell: shellHint, home: io.home });
+  const history = loadFromOptions(values.shell, values.file, io);
   const isTaken = createEnvironment({ shell: history.shell, home: io.home, path: io.env.PATH ?? "" });
   const suggestions = suggest(history.entries, isTaken, { ...options, shell: history.shell });
 
@@ -99,6 +108,22 @@ function runSuggest(args: string[], io: Io): number {
   return 0;
 }
 
+function runRisks(args: string[], io: Io): number {
+  const { values } = parseArgs({
+    args,
+    options: { shell: { type: "string" }, file: { type: "string" }, json: { type: "boolean" } },
+    strict: true,
+  });
+  const history = loadFromOptions(values.shell, values.file, io);
+  const findings = scanHistory(history.entries);
+  io.out(
+    values.json
+      ? renderRisksJson({ shell: history.shell, historyEntries: history.entries.length, findings })
+      : renderRisks(findings, history.entries.length),
+  );
+  return 0;
+}
+
 function isUsageError(error: unknown): boolean {
   const code = (error as NodeJS.ErrnoException).code ?? "";
   return error instanceof UsageError || code.startsWith("ERR_PARSE_ARGS");
@@ -106,7 +131,8 @@ function isUsageError(error: unknown): boolean {
 
 function dispatch(command: string, rest: string[], io: Io): number {
   if (command === "suggest") return runSuggest(rest, io);
-  if (["risks", "apply", "stats"].includes(command)) {
+  if (command === "risks") return runRisks(rest, io);
+  if (["apply", "stats"].includes(command)) {
     io.err(`aliasforge ${command} is not implemented yet`);
     return 1;
   }
