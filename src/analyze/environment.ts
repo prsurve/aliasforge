@@ -1,6 +1,7 @@
 import { accessSync, constants, readdirSync, readFileSync } from "node:fs";
 import { delimiter, join } from "node:path";
 import type { Shell } from "../history/types.js";
+import { stripManagedBlock } from "../apply/block.js";
 import { isReserved } from "./reserved.js";
 
 export type IsTaken = (name: string) => boolean;
@@ -70,7 +71,8 @@ function namesFromRcFiles(shell: Shell, home: string): Set<string> {
   if (shell === "fish") files.push(...fishFunctionFiles(home));
   const names = new Set<string>();
   for (const file of files) {
-    for (const name of definedNames(readText(file))) names.add(name);
+    // Names we wrote ourselves are not collisions, or `apply` would never be idempotent.
+    for (const name of definedNames(stripManagedBlock(readText(file)))) names.add(name);
     if (shell === "fish" && file.endsWith(".fish")) names.add(file.slice(file.lastIndexOf("/") + 1, -5));
   }
   return names;

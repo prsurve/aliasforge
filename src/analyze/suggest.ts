@@ -17,6 +17,8 @@ export interface Suggestion {
   rank: number;
   kind: "alias" | "function";
   pattern: string;
+  /** The alias body, or for a function the body with `<arg>` where the argument goes. */
+  command: string;
   count: number;
   score: number;
   /** Name options. The first one is used in `definition`. */
@@ -83,6 +85,7 @@ function toSuggestion(item: Named, rank: number, shell: Shell): Suggestion {
     rank,
     kind,
     pattern: candidate.pattern,
+    command: candidate.command,
     count: candidate.count,
     score: aliasScore(candidate, name),
     names,

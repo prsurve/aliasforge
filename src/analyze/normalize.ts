@@ -63,3 +63,33 @@ export function splitSubcommands(command: string): string[] {
 export function tokenize(command: string): string[] {
   return splitUnquoted(command, whitespaceAt);
 }
+
+/**
+ * True when quotes, parentheses, braces and backticks outside quotes pair up.
+ * Used to keep text that would break a shell function body out of rc files.
+ */
+export function isBalanced(command: string): boolean {
+  let quote = "";
+  let parens = 0;
+  let braces = 0;
+  let backticks = 0;
+  for (let i = 0; i < command.length; i++) {
+    const char = command[i] as string;
+    if (char === "\\" && quote !== "'") {
+      if (i + 1 >= command.length) return false;
+      i++;
+    } else if (quote) {
+      if (char === quote) quote = "";
+    } else if (char === "'" || char === '"') {
+      quote = char;
+    } else if (char === "`") {
+      backticks++;
+    } else if (char === "(" || char === ")") {
+      parens += char === "(" ? 1 : -1;
+    } else if (char === "{" || char === "}") {
+      braces += char === "{" ? 1 : -1;
+    }
+    if (parens < 0 || braces < 0) return false;
+  }
+  return quote === "" && parens === 0 && braces === 0 && backticks % 2 === 0;
+}
