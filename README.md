@@ -8,15 +8,27 @@ Offline by design. No network calls, no telemetry, and it never runs a command f
 
 ## Install
 
-Not published yet. From a clone (Node 24 or newer):
+The npm package is named `shell-aliasforge`; the command it installs is `aliasforge`. It is not published yet, so for now build from a clone (Node 24 or newer):
 
 ```sh
+git clone https://github.com/prsurve/aliasforge.git
+cd aliasforge
 npm ci
 npm run build
 node dist/cli.js --help
 ```
 
-Once published, the command will be `aliasforge`. The examples below use that name.
+After the first release:
+
+```sh
+npm install -g shell-aliasforge
+aliasforge suggest
+
+# or without installing
+npx shell-aliasforge suggest
+```
+
+The examples below use the `aliasforge` command.
 
 ## Commands
 
@@ -279,4 +291,4 @@ See [CONTRIBUTING.md](CONTRIBUTING.md). The full spec and build plan is in [CLAU
 
 ## License
 
-Not chosen yet.
+[MIT](LICENSE)

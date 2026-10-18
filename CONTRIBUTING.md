@@ -82,6 +82,16 @@ Also check that your secret rule never leaks: the "never puts a full secret in a
 - Known short names live in `CONVENTIONS` in `src/analyze/naming.ts`.
 - Builtins and keywords per shell live in `src/analyze/reserved.ts`.
 
-## Open decisions
+## CI
 
-The license (MIT vs Apache-2.0), repo visibility and the npm package name are not decided yet. Do not add a `LICENSE` file until they are.
+Besides typecheck, tests and build, CI has a `shells` job that runs once each for bash, zsh and fish. It installs the shell, runs the built CLI on that shell's fixture, then loads the generated rc block in the real shell: a syntax check, then calling one alias and one function with stubbed `git` and `docker`. To run one locally (the shell must be installed):
+
+```sh
+AF_E2E_SHELL=zsh AF_E2E_REQUIRE_SHELL=1 npx vitest run test/e2e.test.ts
+```
+
+Without `AF_E2E_REQUIRE_SHELL`, tests for a shell that is not installed are skipped.
+
+## License
+
+By contributing you agree that your work is released under the [MIT license](LICENSE).

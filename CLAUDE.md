@@ -79,7 +79,8 @@ test/
 - Keep dependencies at zero unless there is a strong reason; ask first.
 - Match the code style already in the repo; short functions, no clever tricks.
 
-## Open decisions for the owner
-- License (MIT vs Apache-2.0). Not chosen yet, so no LICENSE file.
-- Public or private GitHub repo, and the final repo name (an unrelated OSINT repo called "Aliasforge" already exists on GitHub; collisions with `gitstq/AliasForge` and `codefitz/AliasForge`, which are hand-managed alias tools).
-- npm package name availability (`aliasforge` may be taken; check before publishing).
+## Decisions
+- License: **MIT** (chosen 2026-10-18; see `LICENSE`).
+- Repo: public, `prsurve/aliasforge` on GitHub.
+- npm package name: `aliasforge` is taken by an unrelated package, so the package is **`shell-aliasforge`**. The installed command stays `aliasforge`.
+- Publishing to npm and tagging v0.1.0 are done by the owner (or on their explicit say-so).

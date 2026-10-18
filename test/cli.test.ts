@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { type Io, run } from "../src/cli.js";
@@ -15,7 +16,8 @@ describe("cli", () => {
   it("prints the version", () => {
     const { io, out } = capture();
     expect(run(["--version"], io)).toBe(0);
-    expect(out).toEqual(["0.0.0"]);
+    const { version } = JSON.parse(readFileSync(join(import.meta.dirname, "..", "package.json"), "utf8")) as { version: string };
+    expect(out).toEqual([version]);
   });
 
   it("suggest --json emits the documented shape", () => {
