@@ -1,13 +1,25 @@
 {
-  "name": "aliasforge",
-  "version": "0.0.0",
-  "description": "Mine shell history to suggest aliases and flag risky or secret-leaking commands. Local-first, offline.",
+  "name": "shell-aliasforge",
+  "version": "0.1.0",
+  "description": "Mine your shell history to suggest aliases and flag risky or secret-leaking commands. Local-first, offline, zero dependencies.",
+  "license": "MIT",
+  "author": "Pratik Surve",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/prsurve/aliasforge.git"
+  },
+  "homepage": "https://github.com/prsurve/aliasforge#readme",
+  "bugs": {
+    "url": "https://github.com/prsurve/aliasforge/issues"
+  },
   "type": "module",
   "bin": {
     "aliasforge": "dist/cli.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=24"
@@ -16,13 +28,19 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "dev": "tsx src/cli.ts"
+    "dev": "tsx src/cli.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
   "keywords": [
     "shell",
     "alias",
     "history",
-    "cli"
+    "cli",
+    "bash",
+    "zsh",
+    "fish",
+    "secrets",
+    "offline"
   ],
   "devDependencies": {
     "@types/node": "^26.6.5",

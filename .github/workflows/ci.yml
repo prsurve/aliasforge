@@ -18,3 +18,36 @@ jobs:
       - run: npm run typecheck
       - run: npm test
       - run: npm run build
+
+  # Runs the CLI against each shell's history format and loads the generated
+  # rc block in the real shell (syntax check, then calls an alias and a function).
+  shells:
+    name: shell (${{ matrix.shell }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        shell: [bash, zsh, fish]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Install ${{ matrix.shell }}
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.shell }}
+          ${{ matrix.shell }} --version
+      - run: npm ci
+      - run: npm run build
+      - name: Smoke test the built CLI on the existing ${{ matrix.shell }} fixture
+        run: |
+          node dist/cli.js stats --shell ${{ matrix.shell }} --file test/fixtures/${{ matrix.shell }}_history
+          node dist/cli.js risks --shell ${{ matrix.shell }} --file test/fixtures/${{ matrix.shell }}_history
+          node dist/cli.js suggest --shell ${{ matrix.shell }} --min-count 2 --file test/fixtures/${{ matrix.shell }}_history
+      - name: End-to-end tests in the real shell
+        run: npx vitest run test/e2e.test.ts
+        env:
+          AF_E2E_SHELL: ${{ matrix.shell }}
+          AF_E2E_REQUIRE_SHELL: "1"

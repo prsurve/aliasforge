@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { realpathSync } from "node:fs";
+import { readFileSync, realpathSync } from "node:fs";
 import { homedir } from "node:os";
 import { basename } from "node:path";
 import { parseArgs } from "node:util";
@@ -15,7 +15,9 @@ import { loadHistory, type LoadedHistory, type Shell } from "./history/index.js"
 import { scanHistory } from "./risks/engine.js";
 import { renderRisks, renderRisksJson } from "./risks/report.js";
 
-const VERSION = "0.0.0";
+const VERSION = (
+  JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { version: string }
+).version;
 const SHELLS: Shell[] = ["bash", "zsh", "fish"];
 
 const HELP = `aliasforge ${VERSION}
