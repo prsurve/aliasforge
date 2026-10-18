@@ -1,4 +1,4 @@
-import { isFlag, tokenize } from "./normalize.js";
+import { isBalanced, isFlag, tokenize } from "./normalize.js";
 
 export const VAR = "<arg>";
 
@@ -69,9 +69,19 @@ function trailingCandidates(groups: Groups): Candidate[] {
     });
 }
 
+/**
+ * A function body is pasted into an rc file, so reject text that could break
+ * out of it: unbalanced quotes or brackets, comments, heredocs, a trailing
+ * `&`, `|` or backslash.
+ */
+function safeForFunction(tokens: string[]): boolean {
+  const command = tokens.join(" ");
+  return isBalanced(command) && !/[&|\\]$/.test(command) && !command.includes("<<") && !tokens.some((t) => t.startsWith("#"));
+}
+
 function middleCandidates(groups: Groups): Candidate[] {
   return [...groups.values()]
-    .filter((group) => group.values.size >= 2)
+    .filter((group) => group.values.size >= 2 && safeForFunction(group.tokens))
     .map((group) => {
       const command = group.tokens.join(" ");
       return {
