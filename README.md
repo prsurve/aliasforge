@@ -4,7 +4,7 @@ Reads your shell history **locally** and suggests aliases and functions for the 
 
 Offline by design. No network calls, no telemetry, and it never runs a command from your history.
 
-> Status: pre-release (not on npm yet). `suggest`, `risks` and `apply` work. `stats` is not implemented yet.
+> Status: pre-release (not on npm yet). `suggest`, `risks`, `apply` and `stats` work.
 
 ## Install
 
@@ -141,7 +141,27 @@ Dry run: nothing was written.
 
 ### `aliasforge stats`
 
-Not implemented yet.
+History size, most-used programs and the time span.
+
+```sh
+aliasforge stats [--shell bash|zsh|fish] [--file <path>] [--top N] [--json]
+```
+
+```text
+$ aliasforge stats --file history.txt --top 3
+Shell: bash
+Entries: 4 (4 unique)
+Time span: 2023-11-14 to 2024-01-11 (57 days, 3 entries with a time)
+
+Top commands:
+   1  git   2
+   2  apt   1
+   3  grep  1
+```
+
+- Programs are counted per sub-command, so both sides of a pipeline count. `VAR=x`, `sudo`, `time` and similar prefixes are skipped to find the real program.
+- The time span needs timestamps. Plain bash history has none unless `HISTTIMEFORMAT` was set.
+- Ties are listed alphabetically.
 
 ## `--json` output
 
@@ -212,6 +232,23 @@ All JSON is printed to stdout. New fields may be added in later versions; existi
 | `findings[].entry` | number | 1-based position of the command in the parsed history |
 | `findings[].preview` | string | The command with secrets masked, cut to 100 characters |
 | `findings[].date` | string, optional | `YYYY-MM-DD` (UTC), present only if the history file recorded a time |
+
+### `stats --json`
+
+```json
+{
+  "shell": "bash",
+  "historyEntries": 4,
+  "uniqueCommands": 4,
+  "timestampedEntries": 3,
+  "firstDate": "2023-11-14",
+  "lastDate": "2024-01-11",
+  "spanDays": 57,
+  "topCommands": [{ "command": "git", "count": 2 }]
+}
+```
+
+`firstDate`, `lastDate` and `spanDays` are left out when the history has no timestamps. `uniqueCommands` counts distinct commands after whitespace is collapsed.
 
 ## History files
 
