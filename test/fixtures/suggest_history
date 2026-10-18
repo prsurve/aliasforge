@@ -1,0 +1,39 @@
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git status
+git checkout main
+git checkout main
+git checkout main
+git checkout dev
+git checkout dev
+git checkout dev
+git checkout feat-x
+git checkout feat-x
+git checkout feat-x
+git checkout fix-y
+git checkout fix-y
+git checkout fix-y
+docker exec -it web bash
+docker exec -it web bash
+docker exec -it web bash
+docker exec -it db bash
+docker exec -it db bash
+docker exec -it db bash
+kubectl get pods -n prod
+kubectl get pods -n prod
+kubectl get pods -n prod
+kubectl get pods -n prod
+kubectl get pods -n prod
+kubectl get pods -n prod
+rare command here
+rare command here
+ls
