@@ -7,6 +7,8 @@ const RECURSIVE = R`(?=[^;&|]*\s(?:-[a-zA-Z]*[rR][a-zA-Z]*|--recursive)(?=\s|$))
 const FORCE = R`(?=[^;&|]*\s(?:-[a-zA-Z]*f[a-zA-Z]*|--force)(?=\s|$))`;
 const SECRET_NAME = R`[A-Za-z0-9_]*(?:TOKEN|SECRET|PASSWORD|PASSWD|API_?KEY|ACCESS_?KEY|PRIVATE_?KEY)`;
 const VALUE = R`(?<secret>[^\s"'$-][^\s"']*)`;
+// A fish value must not be "=": that is SQL or config syntax, not a fish `set`.
+const FISH_VALUE = R`(?<secret>[^\s"'$=-][^\s"']*)`;
 
 export const core: Pattern[] = [
   {
@@ -147,7 +149,16 @@ export const core: Pattern[] = [
     severity: "high",
     title: "Secret set in a fish command",
     advice: "Rotate the value. Load secrets from a file or a secret manager instead of typing them.",
-    pattern: R`\bset\s+(?:-\S+\s+)*${SECRET_NAME}\s+["']?${VALUE}`,
+    pattern: R`(?:^|[;&|]\s*)set\s+(?:-\S+\s+)*${SECRET_NAME}\s+["']?${FISH_VALUE}`,
+    flags: "i",
+  },
+  {
+    id: "core/quoted-secret-assignment",
+    category: "secret",
+    severity: "high",
+    title: "Quoted secret assigned to a token, password or key",
+    advice: "Rotate the value. Keep secrets out of commands, SQL and JSON typed in the shell.",
+    pattern: R`[A-Za-z0-9_]*(?:token|secret|passw(?:or)?d|api_?key|access_?key|private_?key)["']?\s*[=:]\s*["'](?<secret>[^"'\s$<{][^"']{5,})["']`,
     flags: "i",
   },
   {

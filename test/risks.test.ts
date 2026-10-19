@@ -14,6 +14,7 @@ const GH_TOKEN = "ghp_" + "x".repeat(36);
 const GH_PAT = "github_pat_" + "y".repeat(30);
 const GOOGLE_KEY = "AIza" + "z".repeat(35);
 const BEARER = "fake" + "bearer".repeat(4);
+const DB_TOKEN = "tok_" + "q".repeat(40);
 
 const ids = (command: string): string[] =>
   scanHistory([{ command }]).map((finding) => finding.id);
@@ -36,7 +37,8 @@ const CASES: [string, string[], string[]][] = [
   ["core/sshpass-password", ["sshpass -p hunter22 ssh host", "sshpass -p'hunter22' ssh host"], ["sshpass -f pwfile ssh host"]],
   ["core/curl-user-password", ["curl -u admin:hunter22 https://example.com", "curl --user=admin:hunter22 x"], ["curl -u admin https://example.com", "curl -u admin:$PW x"]],
   ["core/export-secret", ["export GITHUB_TOKEN=abc123def456", 'export DB_PASSWORD="hunter22"', "export MY_API_KEY=abcdef12"], ["export PATH=$PATH:/x", "export TOKEN_FILE=/tmp/t", "export API_TOKEN=$OTHER"]],
-  ["core/fish-set-secret", ["set -gx GITHUB_TOKEN abc123def456", "set -x DB_PASSWORD hunter22"], ["set -gx PATH /usr/bin", "set -gx API_TOKEN $other"]],
+  ["core/fish-set-secret", ["set -gx GITHUB_TOKEN abc123def456", "set -x DB_PASSWORD hunter22", "cd x && set -gx API_TOKEN abc123def456"], ["set -gx PATH /usr/bin", "set -gx API_TOKEN $other", `psql -c "update t set access_token = '${DB_TOKEN}'"`, "psql -c \"UPDATE t SET api_key = 'x'\"", "set -gx API_TOKEN =abc"]],
+  ["core/quoted-secret-assignment", [`psql -c "update t set access_token = '${DB_TOKEN}' where id = 1"`, `curl -d '{"password": "hunter22xyz"}' https://example.com`, "apiKey='abcdef123456' node app.js", 'client_secret: "abcdef123456"'], ["access_token = '$TOKEN'", "password = ''", "token='<token>'", "password='abc'", "echo tokenizer='abcdefgh'", "max_tokens = '4096'", "secret='${SECRET_FROM_ENV}'"]],
   ["core/private-key-header", ["echo '-----BEGIN RSA PRIVATE KEY-----' > k", "echo -----BEGIN OPENSSH PRIVATE KEY----- > k"], ["echo -----BEGIN CERTIFICATE-----"]],
   ["core/url-credentials", ["git clone https://user:hunter22@example.com/r.git", "psql postgres://app:hunter22@db/x"], ["git clone https://example.com/r.git", "ssh user@host", "curl https://user:$PW@example.com"]],
   ["git/force-push-main", ["git push --force origin main", "git push -f origin master", "git push origin main --force-with-lease", "git push -fu origin main", "git push --force origin HEAD:main"], ["git push origin main", "git push --force origin feature", "git push --follow-tags origin main"]],
@@ -116,6 +118,30 @@ describe("engine", () => {
     for (const secret of [BEARER, GH_TOKEN, AWS_KEY, "hunter22"]) expect(output).not.toContain(secret);
     expect(output).toContain("AKIA****");
     expect(output).toContain("ghp_****");
+  });
+
+  it("masks something in the preview of every secret rule example", () => {
+    const secretIds = new Set(packs.flatMap((pack) => pack.patterns).filter((p) => p.category === "secret").map((p) => p.id));
+    for (const [id, positives] of CASES) {
+      if (!secretIds.has(id)) continue;
+      for (const command of positives) {
+        const finding = scanHistory([{ command }]).find((f) => f.id === id);
+        expect(finding?.preview, command).toContain("****");
+        expect(finding?.preview, command).not.toBe(command);
+      }
+    }
+  });
+
+  it("reports an exported quoted secret once, under the export rule", () => {
+    const ids = scanHistory([{ command: `export STRIPE_SECRET="${DB_TOKEN}"` }]).map((f) => f.id);
+    expect(ids).toEqual(["core/export-secret"]);
+  });
+
+  it("does not leak a SQL token value", () => {
+    const [finding] = scanHistory([{ command: `psql -c "update t set access_token = '${DB_TOKEN}'"` }]);
+    expect(finding?.id).toBe("core/quoted-secret-assignment");
+    expect(JSON.stringify(finding)).not.toContain(DB_TOKEN);
+    expect(finding?.preview).toContain("tok_****");
   });
 
   it("masks secrets inside dangerous-command previews too", () => {
