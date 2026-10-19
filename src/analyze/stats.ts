@@ -26,6 +26,49 @@ export interface Stats {
   topCommands: CommandCount[];
 }
 
+interface WrapperOptions {
+  /** Single-letter options that take a value. */
+  short: string;
+  /** Long options that take a value (as a separate word when written without `=`). */
+  long: string[];
+}
+
+/** Options of each wrapper that consume the next word, so it is not mistaken for the program. */
+const WRAPPER_OPTIONS: Record<string, WrapperOptions> = {
+  sudo: {
+    short: "ughpCDRTUrt",
+    long: ["--user", "--group", "--host", "--prompt", "--close-from", "--chdir", "--chroot", "--command-timeout", "--other-user", "--role", "--type"],
+  },
+  doas: { short: "uC", long: [] },
+  env: { short: "uCS", long: ["--unset", "--chdir", "--split-string"] },
+  nice: { short: "n", long: ["--adjustment"] },
+  time: { short: "fo", long: ["--format", "--output"] },
+  exec: { short: "a", long: [] },
+};
+
+/** Number of words an option word uses: 1 alone, 2 when its value is the next word. */
+function optionWidth(option: string, wrapper: WrapperOptions): number {
+  if (option.startsWith("--")) {
+    return !option.includes("=") && wrapper.long.includes(option) ? 2 : 1;
+  }
+  const letters = option.slice(1);
+  if (letters === "") return 1;
+  const at = [...letters].findIndex((letter) => wrapper.short.includes(letter));
+  // `-uroot` carries its value; `-Eu` and `-u` take the next word.
+  return at === letters.length - 1 ? 2 : 1;
+}
+
+function skipWrapperOptions(tokens: string[], start: number, wrapperName: string): number {
+  const wrapper = WRAPPER_OPTIONS[wrapperName] ?? { short: "", long: [] };
+  let i = start;
+  while (i < tokens.length && (tokens[i] as string).startsWith("-")) {
+    const token = tokens[i] as string;
+    if (token === "--") return i + 1;
+    i += optionWidth(token, wrapper);
+  }
+  return i;
+}
+
 /** The program a sub-command runs, skipping `VAR=x`, `sudo`, `time` and similar. */
 export function programOf(unit: string): string | undefined {
   const tokens = tokenize(unit);
@@ -35,8 +78,7 @@ export function programOf(unit: string): string | undefined {
     if (ASSIGNMENT.test(token) || SYNTAX.has(token)) {
       i++;
     } else if (WRAPPERS.has(token)) {
-      i++;
-      while (i < tokens.length && (tokens[i] as string).startsWith("-")) i++;
+      i = skipWrapperOptions(tokens, i + 1, token);
     } else {
       break;
     }
