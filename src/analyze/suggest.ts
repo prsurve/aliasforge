@@ -1,7 +1,7 @@
 import type { HistoryEntry, Shell } from "../history/types.js";
 import type { IsTaken } from "./environment.js";
 import { proposeNames } from "./naming.js";
-import { normalizeCommand, splitSubcommands } from "./normalize.js";
+import { commandLines, splitSubcommands } from "./normalize.js";
 import { renderDefinition } from "./render.js";
 import { aliasScore } from "./score.js";
 import { buildCandidates, type Candidate, kindOf } from "./templates.js";
@@ -33,11 +33,10 @@ interface Named {
   score: number;
 }
 
-/** Full normalized line plus its sub-commands, each counted once per entry. */
+/** Each command line plus its sub-commands, counted once per entry. */
 function unitsOf(entry: HistoryEntry): string[] {
-  const line = normalizeCommand(entry.command);
-  if (line === "" || line.startsWith("#")) return [];
-  return [...new Set([line, ...splitSubcommands(line)])];
+  const lines = commandLines(entry.command).filter((line) => !line.startsWith("#"));
+  return [...new Set(lines.flatMap((line) => [line, ...splitSubcommands(line)]))];
 }
 
 function candidatePool(entries: HistoryEntry[], options: SuggestOptions): Candidate[] {

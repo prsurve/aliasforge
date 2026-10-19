@@ -1,4 +1,4 @@
-import { normalizeCommand } from "../analyze/normalize.js";
+import { commandLines } from "../analyze/normalize.js";
 import type { HistoryEntry } from "../history/types.js";
 import { maskRanges, type Range, shorten } from "./mask.js";
 import { packs as defaultPacks } from "./packs/index.js";
@@ -70,26 +70,35 @@ function hasMatch(text: string, rule: Rule): boolean {
   return rule.regex.test(text);
 }
 
+interface RuleSet {
+  secrets: Rule[];
+  dangers: Rule[];
+}
+
+function scanLine(text: string, entry: number, timestamp: number | undefined, rules: RuleSet): Finding[] {
+  const secrets = findSecrets(text, rules.secrets);
+  const preview = shorten(maskRanges(text, secrets.map((hit) => hit.range)));
+  const matched = [
+    ...secrets.map((hit) => hit.pattern),
+    ...rules.dangers.filter((rule) => hasMatch(text, rule)).map((rule) => rule.pattern),
+  ];
+  return matched.map((pattern) => toFinding(pattern, entry, timestamp, preview));
+}
+
 /**
  * Scan history entries for dangerous commands and secrets. Pure text matching:
  * nothing from history is ever executed. Every preview has secrets masked.
+ * An entry with several commands is scanned one command at a time.
  */
 export function scanHistory(entries: HistoryEntry[], packList: Pack[] = defaultPacks): Finding[] {
-  const rules = packList.flatMap((pack) => pack.patterns).map(compile);
-  const secretRules = rules.filter((rule) => rule.pattern.category === "secret");
-  const dangerRules = rules.filter((rule) => rule.pattern.category === "danger");
-  const findings: Finding[] = [];
-
-  entries.forEach((entry, index) => {
-    const text = normalizeCommand(entry.command).slice(0, MAX_SCAN_LENGTH);
-    if (text === "") return;
-    const secrets = findSecrets(text, secretRules);
-    const preview = shorten(maskRanges(text, secrets.map((hit) => hit.range)));
-    const matched = [
-      ...secrets.map((hit) => hit.pattern),
-      ...dangerRules.filter((rule) => hasMatch(text, rule)).map((rule) => rule.pattern),
-    ];
-    for (const pattern of matched) findings.push(toFinding(pattern, index + 1, entry.timestamp, preview));
-  });
-  return findings;
+  const compiled = packList.flatMap((pack) => pack.patterns).map(compile);
+  const rules: RuleSet = {
+    secrets: compiled.filter((rule) => rule.pattern.category === "secret"),
+    dangers: compiled.filter((rule) => rule.pattern.category === "danger"),
+  };
+  return entries.flatMap((entry, index) =>
+    commandLines(entry.command).flatMap((line) =>
+      scanLine(line.slice(0, MAX_SCAN_LENGTH), index + 1, entry.timestamp, rules),
+    ),
+  );
 }

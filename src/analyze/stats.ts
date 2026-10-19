@@ -1,5 +1,5 @@
 import type { HistoryEntry } from "../history/types.js";
-import { normalizeCommand, splitSubcommands, tokenize } from "./normalize.js";
+import { commandLines, splitSubcommands, tokenize } from "./normalize.js";
 
 const ASSIGNMENT = /^[A-Za-z_]\w*=/;
 /** Words that run another command, so the real program is the next word. */
@@ -60,9 +60,11 @@ function validTimestamps(entries: HistoryEntry[]): number[] {
 function countPrograms(entries: HistoryEntry[]): CommandCount[] {
   const counts = new Map<string, number>();
   for (const entry of entries) {
-    for (const unit of splitSubcommands(normalizeCommand(entry.command))) {
-      const program = programOf(unit);
-      if (program !== undefined) counts.set(program, (counts.get(program) ?? 0) + 1);
+    for (const line of commandLines(entry.command)) {
+      for (const unit of splitSubcommands(line)) {
+        const program = programOf(unit);
+        if (program !== undefined) counts.set(program, (counts.get(program) ?? 0) + 1);
+      }
     }
   }
   return [...counts]
@@ -72,8 +74,7 @@ function countPrograms(entries: HistoryEntry[]): CommandCount[] {
 
 /** Summarize parsed history: size, most-used programs and time span. */
 export function computeStats(entries: HistoryEntry[], top: number): Stats {
-  const unique = new Set(entries.map((entry) => normalizeCommand(entry.command)));
-  unique.delete("");
+  const unique = new Set(entries.flatMap((entry) => commandLines(entry.command)));
   const times = validTimestamps(entries);
   const stats: Stats = {
     historyEntries: entries.length,
