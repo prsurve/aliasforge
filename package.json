@@ -1,6 +1,6 @@
 {
   "name": "shell-aliasforge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Mine your shell history to suggest aliases and flag risky or secret-leaking commands. Local-first, offline, zero dependencies.",
   "license": "MIT",
   "author": "Pratik Surve",
