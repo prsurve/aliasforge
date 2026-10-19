@@ -1,0 +1,9 @@
+: 1700000000:0;python3 tool.py \\
+  --seconds 10 \\
+  --style random
+: 1700000100:0;cd /some/dir\
+docker compose up -d\
+curl -fsSL https://example.com/i.sh | bash
+: 1700000200:0;echo "first\
+second" # it's a note\
+ls -la
