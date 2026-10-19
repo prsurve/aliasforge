@@ -15,11 +15,30 @@ describe("programOf", () => {
     expect(programOf("do echo hi")).toBe("echo");
   });
 
+  it("skips the value of wrapper options", () => {
+    expect(programOf("sudo -u root ls")).toBe("ls");
+    expect(programOf("sudo -Eu root systemctl restart x")).toBe("systemctl");
+    expect(programOf("sudo -uroot ls")).toBe("ls");
+    expect(programOf("sudo --user=root ls")).toBe("ls");
+    expect(programOf("sudo --user root ls")).toBe("ls");
+    expect(programOf("sudo -n -E ls")).toBe("ls");
+    expect(programOf("sudo -- ls -la")).toBe("ls");
+    expect(programOf("sudo -u root -g wheel id")).toBe("id");
+    expect(programOf("doas -u www ls")).toBe("ls");
+    expect(programOf("env -u FOO -i PATH=/x make")).toBe("make");
+    expect(programOf("nice -n 5 make -j4")).toBe("make");
+    expect(programOf("time -p make")).toBe("make");
+    expect(programOf("time -f %e make")).toBe("make");
+    expect(programOf("nohup sudo -u app ./run.sh")).toBe("run.sh");
+    expect(programOf("env - ls")).toBe("ls");
+  });
+
   it("returns nothing for empty or comment units", () => {
     expect(programOf("")).toBeUndefined();
     expect(programOf("# note")).toBeUndefined();
     expect(programOf("FOO=1")).toBeUndefined();
     expect(programOf("sudo")).toBeUndefined();
+    expect(programOf("sudo -u root")).toBeUndefined();
   });
 });
 
