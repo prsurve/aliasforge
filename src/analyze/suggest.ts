@@ -1,4 +1,5 @@
 import type { HistoryEntry, Shell } from "../history/types.js";
+import { containsSecret } from "../risks/engine.js";
 import type { IsTaken } from "./environment.js";
 import { proposeNames } from "./naming.js";
 import { commandLines, splitSubcommands } from "./normalize.js";
@@ -33,10 +34,21 @@ interface Named {
   score: number;
 }
 
-/** Each command line plus its sub-commands, counted once per entry. */
+/**
+ * Each command line plus its sub-commands, counted once per entry. Any piece that contains a
+ * secret is dropped, so a token typed into a command can never reach a suggestion, an alias
+ * definition or an rc file. A clean sub-command of such a line (`make deploy` in
+ * `export TOKEN=... && make deploy`) is still counted.
+ */
 function unitsOf(entry: HistoryEntry): string[] {
   const lines = commandLines(entry.command).filter((line) => !line.startsWith("#"));
-  return [...new Set(lines.flatMap((line) => [line, ...splitSubcommands(line)]))];
+  const units = new Set(lines.flatMap((line) => [line, ...splitSubcommands(line)]));
+  return [...units].filter((unit) => !containsSecret(unit));
+}
+
+/** History entries with at least one command line that contains a secret. */
+export function countEntriesWithSecrets(entries: HistoryEntry[]): number {
+  return entries.filter((entry) => commandLines(entry.command).some((line) => containsSecret(line))).length;
 }
 
 function candidatePool(entries: HistoryEntry[], options: SuggestOptions): Candidate[] {

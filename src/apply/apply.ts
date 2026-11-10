@@ -1,6 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
+import { containsSecret } from "../risks/engine.js";
 import { renderDefinition } from "../analyze/render.js";
+import { UsageError } from "../errors.js";
 import type { Shell } from "../history/types.js";
 import { createBackup } from "./backup.js";
 import { type Change, type Item, mergeItems, readItems, writeItems } from "./block.js";
@@ -39,6 +41,8 @@ function readIfExists(path: string): string | undefined {
 
 function itemFor(shell: Shell, selected: Selected, name: string): Item {
   const { kind, command } = selected.suggestion;
+  // Second line of defense: suggest() already drops secrets, but nothing with one may reach an rc file.
+  if (containsSecret(command)) throw new UsageError("Refusing to write a definition that contains a secret into an rc file.");
   return { name, lines: renderDefinition(shell, { kind, name, command }).split("\n") };
 }
 
