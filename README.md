@@ -4,21 +4,11 @@ Reads your shell history **locally** and suggests aliases and functions for the 
 
 Offline by design. No network calls, no telemetry, and it never runs a command from your history.
 
-> Status: pre-release (not on npm yet). `suggest`, `risks`, `apply` and `stats` work.
+> Status: early release (0.x). `suggest`, `risks`, `apply` and `stats` work. Published on npm as `shell-aliasforge`.
 
 ## Install
 
-The npm package is named `shell-aliasforge`; the command it installs is `aliasforge`. It is not published yet, so for now build from a clone (Node 24 or newer):
-
-```sh
-git clone https://github.com/prsurve/aliasforge.git
-cd aliasforge
-npm ci
-npm run build
-node dist/cli.js --help
-```
-
-After the first release:
+The npm package is named `shell-aliasforge`; the command it installs is `aliasforge`. It needs Node 24 or newer.
 
 ```sh
 npm install -g shell-aliasforge
@@ -26,6 +16,16 @@ aliasforge suggest
 
 # or without installing
 npx shell-aliasforge suggest
+```
+
+To build from a clone instead:
+
+```sh
+git clone https://github.com/prsurve/aliasforge.git
+cd aliasforge
+npm ci
+npm run build
+node dist/cli.js --help
 ```
 
 The examples below use the `aliasforge` command.
