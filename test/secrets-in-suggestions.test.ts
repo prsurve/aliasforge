@@ -6,7 +6,7 @@ import { suggest } from "../src/analyze/suggest.js";
 import { type Io, run } from "../src/cli.js";
 
 // Obviously fake values that only match the shape of real secrets.
-const TOKEN = "ghp_FAKE0123456789abcdefghijklmnopqrstuv";
+const TOKEN = "ghp_" + "FAKE0123456789abcdefghijklmnopqrstuv";
 const BEARER = "abcdef1234567890zzzz";
 const none = (): boolean => false;
 const repeat = (command: string, times = 6) => Array.from({ length: times }, () => ({ command }));
