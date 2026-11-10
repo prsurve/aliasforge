@@ -102,3 +102,21 @@ export function scanHistory(entries: HistoryEntry[], packList: Pack[] = defaultP
     ),
   );
 }
+
+let secretRules: Rule[] | undefined;
+
+/**
+ * True when the text contains a secret that the default packs detect. Used to keep secrets out of
+ * anything aliasforge writes or suggests (aliases end up in rc files and on screen).
+ */
+export function containsSecret(text: string): boolean {
+  secretRules ??= packsSecretRules();
+  return findSecrets(text.slice(0, MAX_SCAN_LENGTH), secretRules).length > 0;
+}
+
+function packsSecretRules(): Rule[] {
+  return defaultPacks
+    .flatMap((pack) => pack.patterns)
+    .filter((pattern) => pattern.category === "secret")
+    .map(compile);
+}

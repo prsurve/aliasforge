@@ -10,7 +10,7 @@ import { UsageError } from "./errors.js";
 import { createEnvironment } from "./analyze/environment.js";
 import { renderJson, renderReport } from "./analyze/report.js";
 import { computeStats, renderStats } from "./analyze/stats.js";
-import { suggest } from "./analyze/suggest.js";
+import { countEntriesWithSecrets, suggest } from "./analyze/suggest.js";
 import { loadHistory, type LoadedHistory, type Shell } from "./history/index.js";
 import { scanHistory } from "./risks/engine.js";
 import { renderRisks, renderRisksJson } from "./risks/report.js";
@@ -116,6 +116,7 @@ function runSuggest(args: string[], io: Io): number {
   const history = loadFromOptions(values.shell, values.file, io);
   const isTaken = createEnvironment({ shell: history.shell, home: io.home, path: io.env.PATH ?? "" });
   const suggestions = suggest(history.entries, isTaken, { ...options, shell: history.shell });
+  noteSkippedSecrets(history.entries, io);
 
   io.out(
     values.json
@@ -123,6 +124,16 @@ function runSuggest(args: string[], io: Io): number {
       : renderReport(history.shell, suggestions),
   );
   return 0;
+}
+
+/** Tell the user (on stderr, so --json stays clean) why some commands are missing from suggestions. */
+function noteSkippedSecrets(entries: LoadedHistory["entries"], io: Io): void {
+  const count = countEntriesWithSecrets(entries);
+  if (count > 0) {
+    io.err(
+      `Note: ${count} history ${count === 1 ? "entry contains" : "entries contain"} a secret, so ${count === 1 ? "it was" : "they were"} left out of the suggestions. Run \`aliasforge risks\` to see them.`,
+    );
+  }
 }
 
 function runRisks(args: string[], io: Io): number {
@@ -182,6 +193,7 @@ function runApply(args: string[], io: Io): number {
   const history = loadFromOptions(values.shell, values.file, io);
   const isTaken = createEnvironment({ shell: history.shell, home: io.home, path: io.env.PATH ?? "" });
   const suggestions = suggest(history.entries, isTaken, { ...options, shell: history.shell });
+  noteSkippedSecrets(history.entries, io);
   const selected = selectSuggestions(suggestions, values.select);
   const dryRun = values["dry-run"] === true;
   const result = applyToRc({

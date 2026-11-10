@@ -67,6 +67,7 @@ How it works:
 - A template whose last argument varies becomes an **alias** (extra words pass through). One whose argument sits in the middle becomes a **function**.
 - Names come from known conventions (`gs`, `k`) and initials, and skip anything that would shadow a builtin, a program on your `PATH`, or an alias or function in your rc files. The name list shows up to three options.
 - Which names are free depends on the machine running the command, so results can differ between computers.
+- Commands that contain a detected secret (tokens, bearer headers, URL passwords) are never suggested, so a secret cannot end up in an alias, on screen or in your rc file. A note on stderr says how many history entries were left out; `aliasforge risks` lists them.
 
 ### `aliasforge risks`
 
